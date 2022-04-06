@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon ./src/index.ts",
+    "start": "nodemon --signal SIGINT ./src/index.ts",
     "test": "jest"
   },
   "keywords": [],
@@ -13,8 +13,7 @@
   "dependencies": {
     "config": "^3.3.7",
     "express": "^4.17.3",
-    "mongodb": "^4.5.0",
-    "winston": "^3.7.2"
+    "mongodb": "^4.5.0"
   },
   "devDependencies": {
     "@types/config": "^0.0.41",

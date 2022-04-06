@@ -1,7 +1,11 @@
 class DbHelper {
-  static client = null;
+  static client:{[key: string]: any} = null;
 
   static async connect() {
+    if (DbHelper.client) {
+      return DbHelper.client
+    }
+
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         const client = {};
@@ -11,8 +15,8 @@ class DbHelper {
     });
   }
 
-  static getClient() {
-    return DbHelper.client;
+  static async diconnect(){
+    return Promise.resolve(true)
   }
 }
 
