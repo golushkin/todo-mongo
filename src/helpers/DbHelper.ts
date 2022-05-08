@@ -1,22 +1,37 @@
+import config from "config";
+import { MongoClient } from "mongodb";
+import { Config } from '../types/config'
+
+const { host, port, dbName } = config.get<Config["db"]>("db") 
 class DbHelper {
-  static client:{[key: string]: any} = null;
+  static client?: MongoClient;
 
   static async connect() {
     if (DbHelper.client) {
-      return DbHelper.client
+      return DbHelper.client.db(dbName)
     }
 
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const client = {};
-        DbHelper.client = client;
-        resolve(client);
-      }, 0);
-    });
+    const url = `mongodb://${host}:${port}`
+    const client = new MongoClient(url)
+    DbHelper.client = client;
+
+    await client.connect()
+
+    return client.db(dbName)
   }
 
-  static async diconnect(){
-    return Promise.resolve(true)
+  static async disconnect(){
+    if (DbHelper.client) {
+      await DbHelper.client.close()
+    }
+  }
+
+  static async getDb(){
+    if (DbHelper.client) {
+      return DbHelper.client.db(dbName)
+    }
+
+    return DbHelper.connect()
   }
 }
 

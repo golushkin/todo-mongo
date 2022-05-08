@@ -12,10 +12,11 @@ const app = express();
 const serverConfig = config.get<Config["server"]>("server");
 
 app.use(httpLoggerMiddleware)
+app.use(express.json())
 app.use(router);
 app.use(handle404)
 
-async function start(){
+export async function start(){
   try {
     await DbHelper.connect()
   } catch (error) {
@@ -25,7 +26,11 @@ async function start(){
   process.on('SIGINT', closeAll)
   process.on('SIGTERM', closeAll)
 
-  app.listen(serverConfig.port, () => console.log("listen on " + serverConfig.port));
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(serverConfig.port, () => console.log("listen on " + serverConfig.port));
+  }
+
+  return app
 }
 
 start()

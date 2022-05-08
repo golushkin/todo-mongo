@@ -1,3 +1,4 @@
 export const httpErrs = {
-    404: "PAGE_WAS_NOT_FOUND"
+    PAGE_WAS_NOT_FOUND: "PAGE_WAS_NOT_FOUND",
+    UNAUTHORIZED: "UNAUTHORIZED"
 }

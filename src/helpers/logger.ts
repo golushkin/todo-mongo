@@ -1,8 +1,14 @@
 import { Request } from "express"
 
 class Logger {
+    log(msg: string){
+        if (process.env.NODE_ENV !== 'test') {
+            console.log(msg)
+        }
+    }
+
     info(msg: string){
-        console.log(msg)
+        this.log(`[INFO]: ${msg}`)
     }
 
     error(err: Error){
@@ -14,7 +20,7 @@ class Logger {
         const url = req.url
         const method = req.method
 
-        console.log(`${url} ${method} ${time}`)
+        this.log(`[REQUEST] ${url} ${method} ${time}`)
     }
 }
 
