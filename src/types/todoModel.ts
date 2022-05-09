@@ -2,13 +2,13 @@ import { IComment } from "./commentModel";
 import { IUser } from "./userModel";
 
 export interface ITodo {
-  id: string;
-  text: string;
-  creator: IUser['id'];
-  assignedTo: IUser['id'];
+  _id: string;
+  title: string;
+  creator: IUser["_id"];
+  assignedTo: IUser["_id"];
   comments: IComment[];
   state: null | string;
-  expireAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  expireAt: string;
+  createdAt: string;
+  updatedAt: string;
 }

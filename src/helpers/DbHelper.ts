@@ -1,18 +1,19 @@
 import config from "config";
 import { MongoClient } from "mongodb";
-import { Config } from '../types/config'
+import { Config } from "../types/config"
 
 const { host, port, dbName } = config.get<Config["db"]>("db") 
+
+const url = `mongodb://${host}:${port}`
 class DbHelper {
   static client?: MongoClient;
 
-  static async connect() {
+  static async connect(connectUrl?: string) {
     if (DbHelper.client) {
       return DbHelper.client.db(dbName)
     }
 
-    const url = `mongodb://${host}:${port}`
-    const client = new MongoClient(url)
+    const client = new MongoClient(connectUrl || url)
     DbHelper.client = client;
 
     await client.connect()

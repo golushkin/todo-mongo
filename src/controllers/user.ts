@@ -7,16 +7,26 @@ const userModel = new UserModel()
 export const createUser = async (req: Request, res: Response) => {
   const apiHandler = new ApiHandler(req, res);
   const { body } = req
-  const user = await userModel.create(body);
 
-  apiHandler.sendSuccess(user, 201)
+  try {
+    const user = await userModel.create(body);
+
+    apiHandler.sendSuccess(user, 201)
+  } catch (error) {
+    apiHandler.sendFailure(error.message)
+  }
 }
 
 export const getUser = async (req: Request, res: Response) => {
   const apiHandler = new ApiHandler(req, res);
   const id = req.params.id;
-  const user = await userModel.getById(id);
+ 
+  try {
+    const user = await userModel.getById(id);
 
-  apiHandler.sendSuccess(user)
+    apiHandler.sendSuccess(user)
+  } catch (error) {
+    apiHandler.sendFailure(error.message)
+  }
 }
 

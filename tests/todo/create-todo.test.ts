@@ -1,17 +1,22 @@
-import { MongoMemoryServer } from "mongodb-memory-server"
 import request from "supertest"
+import { MongoMemoryServer } from "mongodb-memory-server"
 import { start } from "../../src"
-import UserModel from "../../src/db/UserModel"
+import TodoModel from "../../src/db/TodoModel"
 import DbHelper from "../../src/helpers/DbHelper"
-import { expectSuccessBody, truncteAllCollections } from "../helpers"
+import { 
+  createUser, 
+  expectSuccessBody,
+  truncteAllCollections,
+  getTodoPayload
+} from "../helpers"
 
-const baseUrl = "/user/"
+const baseUrl = "/todo"
 
-const userModel = new UserModel()
+const todoModel = new TodoModel()
 
 jest.setTimeout(30_000);
 
-describe("Create user", () => {
+describe("Create todo", () => {
   let client: request.SuperTest<request.Test>
   let memoryServer: MongoMemoryServer
   
@@ -40,7 +45,9 @@ describe("Create user", () => {
   })
 
   test("Should be success", async () => {
-    const payload = { userName: "test" }
+    const userId = await createUser()
+    const payload = getTodoPayload(userId, "test")
+
     const { status, body } = await client.post(baseUrl).send(payload)
     
     expectSuccessBody(body)
@@ -48,7 +55,7 @@ describe("Create user", () => {
     expect(body.data).toHaveProperty("insertedId")
 
     const insertedId = body.data.insertedId
-    const data = await userModel.getById(insertedId)
+    const data = await todoModel.getById(insertedId)
 
     expect(data).toMatchObject(payload)
   })

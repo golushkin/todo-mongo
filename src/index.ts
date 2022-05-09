@@ -1,8 +1,8 @@
 import express from "express";
 import config from "config";
 import { Config } from "./types/config";
-import router from './routes/index'
-import { httpLoggerMiddleware } from './middlewares/logger'
+import router from "./routes/index"
+import { httpLoggerMiddleware } from "./middlewares/logger"
 import { handle404 } from "./helpers/errorHandler";
 import DbHelper from "./helpers/DbHelper";
 import logger from "./helpers/logger";
@@ -16,21 +16,24 @@ app.use(express.json())
 app.use(router);
 app.use(handle404)
 
-export async function start(){
+export async function start(connectUrl?: string){
   try {
-    await DbHelper.connect()
+    await DbHelper.connect(connectUrl)
   } catch (error) {
     logger.error(error)
   }
 
-  process.on('SIGINT', closeAll)
-  process.on('SIGTERM', closeAll)
-
-  if (process.env.NODE_ENV !== 'test') {
-    app.listen(serverConfig.port, () => console.log("listen on " + serverConfig.port));
-  }
+  process.on("SIGINT", closeAll)
+  process.on("SIGTERM", closeAll)
 
   return app
 }
 
-start()
+if (process.env.NODE_ENV !== "test") {
+  start()
+
+  app.listen(
+    serverConfig.port,
+    () => console.log("listen on " + serverConfig.port)
+  );
+}
