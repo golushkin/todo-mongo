@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { Filter, Document, ObjectId } from "mongodb";
 import collectionsNames from "../consts/collectionsNames";
 import { ITodo } from "../types/todoModel";
 import { BaseModel } from "./BaseModel";
@@ -24,6 +24,19 @@ class TodoModel extends BaseModel {
     const collection = await this.getCollection()
     
     return collection.find<ITodo>({}, { limit, skip: offset }).toArray()
+  }
+
+  async getAllWithCursor(limit: number, id?: string, ){
+    const collection = await this.getCollection()
+    const filter: Filter<Document> = {}
+
+    if (id) {
+      filter["_id"] = {
+        $gt: new ObjectId(id)
+      }
+    }
+    
+    return collection.find<ITodo>(filter, { limit }).toArray()
   }
 }
 

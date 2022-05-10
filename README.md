@@ -15,3 +15,12 @@ docker-compose up -d
 
 npm run start
 ```
+
+## How to run tests
+
+run the following commands
+```bash
+cp ./config/example.json ./config/test.json
+
+npm run test
+```

@@ -1,5 +1,6 @@
 import request from "supertest"
 import { MongoMemoryServer } from "mongodb-memory-server"
+import config from "config"
 import { start } from "../../src"
 import TodoModel from "../../src/db/TodoModel"
 import DbHelper from "../../src/helpers/DbHelper"
@@ -7,17 +8,18 @@ import {
   createUser, 
   expectSuccessBody,
   truncteAllCollections,
-  getTodoPayload,
   createToDos,
-  expectDataHasTodoProps
+  expectDataHasTodoProps,
+  getTodoPayload
 } from "../helpers"
-import { TestResponseSuccess } from "../types/supertest"
 import { ITodo } from "../../src/types/todoModel"
-
+import { Config } from "../../src/types/config"
+import { TestResponseSuccess } from "../types/supertest"
 const baseUrl = "/todo"
 
 const todoModel = new TodoModel()
 const numberOfTodos = 100
+const { paginationLimit } = config.get<Config["options"]>("options")
 
 jest.setTimeout(30_000);
 
@@ -75,7 +77,7 @@ describe("Pagination todo", () => {
     expect(status).toBe(200)
 
     const { data } = body as TestResponseSuccess<ITodo[]>
-    expect(data).toHaveLength(10)
+    expect(data).toHaveLength(paginationLimit)
     const firstTodo = data[0]
     expectDataHasTodoProps(firstTodo)
   })
@@ -87,7 +89,7 @@ describe("Pagination todo", () => {
     expect(result1.status).toBe(200)
     
     const result1Data = result1.body.data as ITodo[]
-    expect(result1Data).toHaveLength(10)
+    expect(result1Data).toHaveLength(paginationLimit)
 
     const result2 = await client.get(`${baseUrl}/offset?offset=10`)
     
@@ -95,18 +97,57 @@ describe("Pagination todo", () => {
     expect(result2.status).toBe(200)
 
     const result2Data = result2.body.data as ITodo[]
-    expect(result2Data).toHaveLength(10)
+    expect(result2Data).toHaveLength(paginationLimit)
 
     const result1Ids = result1Data.map(todo => todo._id)
     const result2Ids = result2Data.map(todo => todo._id)
     const intersectIds = result1Ids.filter(value => result2Ids.includes(value))
 
     expect(intersectIds).toHaveLength(0)
-    const allTodos = [ ...result1Data, ...result2Data ]
-    allTodos.forEach((todo, i) => expect(todo.title).toBe(`title-${i}`))
+    result1Data.forEach((todo, i) => expect(todo.title).toBe(`title-${i}`))
+    result2Data.forEach(
+      (todo, i) => expect(todo.title).toBe(`title-${i + paginationLimit}`)
+    )
   })
 
-  test("Should paginate through cursor", () => {
-    //
+  test("Should paginate through cursor without options", async() => {
+    const { status, body } = await client.get(`${baseUrl}/cursor`)
+    
+    expectSuccessBody(body)
+    expect(status).toBe(200)
+
+    const { data } = body as TestResponseSuccess<ITodo[]>
+    expect(data).toHaveLength(paginationLimit)
+    const firstTodo = data[0]
+    expectDataHasTodoProps(firstTodo)
+  })
+
+  test("Should paginate through cursor with options", async() => {
+    const result1 = await client.get(`${baseUrl}/cursor`)
+    
+    expectSuccessBody(result1.body)
+    expect(result1.status).toBe(200)
+    
+    const result1Data = result1.body.data as ITodo[]
+    expect(result1Data).toHaveLength(paginationLimit)
+    const lastTodoId = result1Data[result1Data.length - 1]._id
+
+    const result2 = await client.get(`${baseUrl}/cursor?id=${lastTodoId}`)
+    
+    expectSuccessBody(result2.body)
+    expect(result2.status).toBe(200)
+
+    const result2Data = result2.body.data as ITodo[]
+    expect(result2Data).toHaveLength(paginationLimit)
+
+    const result1Ids = result1Data.map(todo => todo._id)
+    const result2Ids = result2Data.map(todo => todo._id)
+    const intersectIds = result1Ids.filter(value => result2Ids.includes(value))
+
+    expect(intersectIds).toHaveLength(0)
+    result1Data.forEach((todo, i) => expect(todo.title).toBe(`title-${i}`))
+    result2Data.forEach(
+      (todo, i) => expect(todo.title).toBe(`title-${i + paginationLimit}`)
+    )
   })
 })
