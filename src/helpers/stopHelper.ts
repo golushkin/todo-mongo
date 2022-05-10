@@ -1,7 +1,7 @@
 import DbHelper from "./DbHelper"
 
 export const closeAll = async () => {
-    await DbHelper.disconnect()
+  await DbHelper.disconnect()
 
-    process.exit(0)
+  process.exit(0)
 }
