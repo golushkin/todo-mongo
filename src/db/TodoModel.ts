@@ -1,4 +1,4 @@
-import { Filter, Document, ObjectId } from "mongodb";
+import { Filter, Document, ObjectId, Collection } from "mongodb";
 import collectionsNames from "../consts/collectionsNames";
 import { ITodo } from "../types/todoModel";
 import { BaseModel } from "./BaseModel";
@@ -10,8 +10,13 @@ class TodoModel extends BaseModel {
 
   async create(data: Omit<ITodo, "_id">){
     const collection = await this.getCollection()
+    const todo = {
+      ...data,
+      creator: new ObjectId(data.creator),
+      assignedTo: new ObjectId(data.assignedTo)
+    }
 
-    return collection.insertOne(data)
+    return collection.insertOne(todo)
   }
 
   async getById(id: string){
@@ -20,14 +25,48 @@ class TodoModel extends BaseModel {
     return collection.findOne<ITodo>({ _id: new ObjectId(id) })
   }
 
-  async getAll(offset: number, limit: number){
+  async getAll(offset: number, limit: number, isLinked: boolean){
     const collection = await this.getCollection()
-    
-    return collection.find<ITodo>({}, { limit, skip: offset }).toArray()
+
+    if (!isLinked) {
+      return collection.find<ITodo>({}, { limit, skip: offset }).toArray()
+    }
+
+    return collection
+      .aggregate([
+        {
+          $skip: offset
+        },
+        {
+          $lookup:{
+            from: collectionsNames.user,
+            localField: "creator",
+            foreignField: "_id",
+            as: "creator"
+          }
+        },
+        {
+          $lookup:{
+            from: collectionsNames.user,
+            localField: "assignedTo",
+            foreignField: "_id",
+            as: "assignedTo"
+          }
+        },
+        {
+          $unwind: "$creator",
+        },
+        {
+          $unwind: "$assignedTo",
+        },
+        {
+          $limit: limit
+        }
+      ])
+      .toArray()    
   }
 
-  async getAllWithCursor(limit: number, id?: string, ){
-    const collection = await this.getCollection()
+  _getAllWithCursorUnLinked(collection: Collection, limit: number, id?: string){
     const filter: Filter<Document> = {}
 
     if (id) {
@@ -37,6 +76,56 @@ class TodoModel extends BaseModel {
     }
     
     return collection.find<ITodo>(filter, { limit }).toArray()
+  }
+
+  async getAllWithCursor(limit: number, isLinked: boolean, id?: string, ){
+    const collection = await this.getCollection()
+
+    if (!isLinked) {
+      return this._getAllWithCursorUnLinked(collection, limit, id)
+    }
+
+    const aggreator: {[key: string]: any}[] = [
+      {
+        $lookup:{
+          from: collectionsNames.user,
+          localField: "creator",
+          foreignField: "_id",
+          as: "creator"
+        }
+      },
+      {
+        $lookup:{
+          from: collectionsNames.user,
+          localField: "assignedTo",
+          foreignField: "_id",
+          as: "assignedTo"
+        }
+      },
+      {
+        $unwind: "$creator",
+      },
+      {
+        $unwind: "$assignedTo",
+      },
+      {
+        $limit: limit
+      } 
+    ]
+
+    if (id) {
+      aggreator.unshift({
+        $match: {
+          _id: {
+            $gt: new ObjectId(id)
+          }
+        }
+      })
+    }
+
+    return collection
+      .aggregate(aggreator)
+      .toArray()    
   }
 }
 
