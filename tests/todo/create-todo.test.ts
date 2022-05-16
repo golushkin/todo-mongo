@@ -41,7 +41,7 @@ describe("Create todo", () => {
   beforeEach(async () => {
     const db = await DbHelper.getDb()
 
-    truncteAllCollections(db);
+    await truncteAllCollections(db);
   })
 
   test("Should be success", async () => {
@@ -57,6 +57,6 @@ describe("Create todo", () => {
     const insertedId = body.data.insertedId
     const data = await todoModel.getById(insertedId)
 
-    expect(data).toMatchObject(payload)
+    expect(JSON.parse(JSON.stringify(data))).toMatchObject(payload)
   })
 })

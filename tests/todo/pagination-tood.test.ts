@@ -1,4 +1,5 @@
-import request from "supertest"
+/* eslint-disable max-len */
+import request, { SuperTest, Test } from "supertest"
 import { MongoMemoryServer } from "mongodb-memory-server"
 import config from "config"
 import { start } from "../../src"
@@ -10,9 +11,10 @@ import {
   truncteAllCollections,
   createToDos,
   expectDataHasTodoProps,
-  getTodoPayload
+  getTodoPayload,
+  expectTodoIsLinked
 } from "../helpers"
-import { ITodo } from "../../src/types/todoModel"
+import { ITodo, ITodoLinked } from "../../src/types/todoModel"
 import { Config } from "../../src/types/config"
 import { TestResponseSuccess } from "../types/supertest"
 const baseUrl = "/todo"
@@ -23,10 +25,80 @@ const { paginationLimit } = config.get<Config["options"]>("options")
 
 jest.setTimeout(30_000);
 
+const offsetPaginationWithParams = async(
+  client: SuperTest<Test>,
+  isLinked = false
+) => {
+  const result1 = await client.get(`${baseUrl}/offset?linked=${isLinked}`)
+  
+  expectSuccessBody(result1.body)
+  expect(result1.status).toBe(200)
+  
+  const result1Data = result1.body.data as any[]
+  expect(result1Data).toHaveLength(paginationLimit)
+
+  const result2 = await client.get(
+    `${baseUrl}/offset?offset=10&linked=${isLinked}`
+  )
+  
+  expectSuccessBody(result2.body)
+  expect(result2.status).toBe(200)
+
+  const result2Data = result2.body.data as any[]
+  expect(result2Data).toHaveLength(paginationLimit)
+
+  const result1Ids = result1Data.map(todo => todo._id)
+  const result2Ids = result2Data.map(todo => todo._id)
+  const intersectIds = result1Ids.filter(value => result2Ids.includes(value))
+
+  expect(intersectIds).toHaveLength(0)
+  result1Data.forEach((todo, i) => expect(todo.title).toBe(`title-${i}`))
+  result2Data.forEach(
+    (todo, i) => expect(todo.title).toBe(`title-${i + paginationLimit}`)
+  )
+
+  return { result1Data, result2Data }
+}
+
+const cursorPaginationWithParams = async(
+  client: SuperTest<Test>,
+  isLinked = false
+) => {
+  const result1 = await client.get(`${baseUrl}/cursor?linked=${isLinked}`)
+  
+  expectSuccessBody(result1.body)
+  expect(result1.status).toBe(200)
+  
+  const result1Data = result1.body.data as any[]
+  expect(result1Data).toHaveLength(paginationLimit)
+  const lastTodoId = result1Data[result1Data.length - 1]._id
+
+  const result2 = await client.get(`${baseUrl}/cursor?id=${lastTodoId}&linked=${isLinked}`)
+  
+  expectSuccessBody(result2.body)
+  expect(result2.status).toBe(200)
+
+  const result2Data = result2.body.data as any[]
+  expect(result2Data).toHaveLength(paginationLimit)
+
+  const result1Ids = result1Data.map(todo => todo._id)
+  const result2Ids = result2Data.map(todo => todo._id)
+  const intersectIds = result1Ids.filter(value => result2Ids.includes(value))
+
+  expect(intersectIds).toHaveLength(0)
+  result1Data.forEach((todo, i) => expect(todo.title).toBe(`title-${i}`))
+  result2Data.forEach(
+    (todo, i) => expect(todo.title).toBe(`title-${i + paginationLimit}`)
+  )
+
+  return { result1Data, result2Data }
+}
+
 describe("Pagination todo", () => {
   let client: request.SuperTest<request.Test>
   let memoryServer: MongoMemoryServer
   let userId: string
+  const userName = "test"
   
   beforeAll(async () => {
     memoryServer = await MongoMemoryServer.create({
@@ -48,9 +120,9 @@ describe("Pagination todo", () => {
 
   beforeEach(async () => {
     const db = await DbHelper.getDb()
-    truncteAllCollections(db);
+    await truncteAllCollections(db);
 
-    userId = await createUser();
+    userId = await createUser(userName);
     await createToDos(userId, numberOfTodos)
   })
 
@@ -67,7 +139,7 @@ describe("Pagination todo", () => {
     const insertedId = body.data.insertedId
     const data = await todoModel.getById(insertedId)
 
-    expect(data).toMatchObject(payload)
+    expect(JSON.parse(JSON.stringify(data))).toMatchObject(payload)
   })
 
   test("Should paginate through offset/limit without query params", async() => {
@@ -82,32 +154,8 @@ describe("Pagination todo", () => {
     expectDataHasTodoProps(firstTodo)
   })
 
-  test("Should paginate through offset/limit with query params", async() => {
-    const result1 = await client.get(`${baseUrl}/offset`)
-    
-    expectSuccessBody(result1.body)
-    expect(result1.status).toBe(200)
-    
-    const result1Data = result1.body.data as ITodo[]
-    expect(result1Data).toHaveLength(paginationLimit)
-
-    const result2 = await client.get(`${baseUrl}/offset?offset=10`)
-    
-    expectSuccessBody(result2.body)
-    expect(result2.status).toBe(200)
-
-    const result2Data = result2.body.data as ITodo[]
-    expect(result2Data).toHaveLength(paginationLimit)
-
-    const result1Ids = result1Data.map(todo => todo._id)
-    const result2Ids = result2Data.map(todo => todo._id)
-    const intersectIds = result1Ids.filter(value => result2Ids.includes(value))
-
-    expect(intersectIds).toHaveLength(0)
-    result1Data.forEach((todo, i) => expect(todo.title).toBe(`title-${i}`))
-    result2Data.forEach(
-      (todo, i) => expect(todo.title).toBe(`title-${i + paginationLimit}`)
-    )
+  test("Should paginate through offset/limit with query params", async () => {
+    await offsetPaginationWithParams(client)
   })
 
   test("Should paginate through cursor without options", async() => {
@@ -123,31 +171,45 @@ describe("Pagination todo", () => {
   })
 
   test("Should paginate through cursor with options", async() => {
-    const result1 = await client.get(`${baseUrl}/cursor`)
-    
-    expectSuccessBody(result1.body)
-    expect(result1.status).toBe(200)
-    
-    const result1Data = result1.body.data as ITodo[]
-    expect(result1Data).toHaveLength(paginationLimit)
-    const lastTodoId = result1Data[result1Data.length - 1]._id
+    await cursorPaginationWithParams(client)
+  })
 
-    const result2 = await client.get(`${baseUrl}/cursor?id=${lastTodoId}`)
-    
-    expectSuccessBody(result2.body)
-    expect(result2.status).toBe(200)
+  test("Should get linked todos", async() => {
+    const { status, body } = await client.get(`${baseUrl}/offset?linked=true`)
+      
+    expectSuccessBody(body)
+    expect(status).toBe(200)
+  
+    const { data } = body as TestResponseSuccess<ITodoLinked[]>
+    expect(data).toHaveLength(paginationLimit)
+    const firstTodo = data[0]
+    expectDataHasTodoProps(firstTodo)
+    expectTodoIsLinked(firstTodo, userName)
+  })
 
-    const result2Data = result2.body.data as ITodo[]
-    expect(result2Data).toHaveLength(paginationLimit)
+  test(
+    "Should paginate through offset/limit with query params, linked", 
+    async () => {
+      const isLinked = true
+      const {
+        result1Data, 
+        result2Data
+      } = await offsetPaginationWithParams(client, isLinked)
 
-    const result1Ids = result1Data.map(todo => todo._id)
-    const result2Ids = result2Data.map(todo => todo._id)
-    const intersectIds = result1Ids.filter(value => result2Ids.includes(value))
+      const firstTodo = result1Data[0] as ITodoLinked;
+      const secondTodo = result2Data[0] as ITodoLinked
+      expectTodoIsLinked(firstTodo, userName)
+      expectTodoIsLinked(secondTodo, userName)
+    }
+  )
 
-    expect(intersectIds).toHaveLength(0)
-    result1Data.forEach((todo, i) => expect(todo.title).toBe(`title-${i}`))
-    result2Data.forEach(
-      (todo, i) => expect(todo.title).toBe(`title-${i + paginationLimit}`)
-    )
+  test("Should paginate through cursor with options, linked", async() => {
+    const isLinked = true
+    const { result1Data, result2Data } = await cursorPaginationWithParams(client, isLinked)
+
+    const firstTodo = result1Data[0] as ITodoLinked;
+    const secondTodo = result2Data[0] as ITodoLinked
+    expectTodoIsLinked(firstTodo, userName)
+    expectTodoIsLinked(secondTodo, userName)
   })
 })

@@ -1,7 +1,7 @@
 import { Db } from "mongodb"
 import TodoModel from "../src/db/TodoModel"
 import UserModel from "../src/db/UserModel"
-import { ITodo } from "../src/types/todoModel"
+import { ITodo, ITodoLinked } from "../src/types/todoModel"
 
 const userModel = new UserModel()
 const todoModel = new TodoModel()
@@ -22,6 +22,13 @@ export const expectDataHasTodoProps = (data: any) => {
   expect(data).toHaveProperty("expireAt")
   expect(data).toHaveProperty("createdAt")
   expect(data).toHaveProperty("updatedAt")
+}
+
+export const expectTodoIsLinked = (todo: ITodoLinked, userName: string) => {
+  expect(todo.creator).toHaveProperty("userName")
+  expect(todo.assignedTo).toHaveProperty("userName")
+  expect(todo.creator.userName).toBe(userName)
+  expect(todo.assignedTo.userName).toBe(userName)
 }
 
 export const createUser = async (userName?: "test") => {

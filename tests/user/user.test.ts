@@ -36,7 +36,7 @@ describe("Create user", () => {
   beforeEach(async () => {
     const db = await DbHelper.getDb()
 
-    truncteAllCollections(db);
+    await truncteAllCollections(db);
   })
 
   test("Should be success", async () => {

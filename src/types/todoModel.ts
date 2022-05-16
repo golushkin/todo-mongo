@@ -1,7 +1,7 @@
 import { IComment } from "./commentModel";
 import { IUser } from "./userModel";
 
-export interface ITodo {
+export type ITodo = {
   _id: string;
   title: string;
   creator: IUser["_id"];
@@ -11,4 +11,10 @@ export interface ITodo {
   expireAt: string;
   createdAt: string;
   updatedAt: string;
+}
+
+
+export type ITodoLinked = Omit<ITodo, "creator" | "assignedTo"> & {
+  creator: IUser;
+  assignedTo: IUser;
 }
