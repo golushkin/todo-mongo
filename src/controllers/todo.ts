@@ -70,6 +70,19 @@ export const getTodosWithCursor = async (req: Request, res: Response) => {
   }
 }
 
+export const updateTodo = async (req: Request, res: Response) => {
+  const apiHandler = new ApiHandler(req, res);
+  const { body } = req
+
+  try {
+    const updateResult = await todoModel.updateOne(body);
+    apiHandler.sendSuccess(updateResult)
+  } catch (error) {
+    apiHandler.sendFailure(error.message)
+  }
+}
+
+
 export const deleteTodo = async (req: Request, res: Response) => {
   const apiHandler = new ApiHandler(req, res);
   const { id } = req.params
@@ -77,8 +90,8 @@ export const deleteTodo = async (req: Request, res: Response) => {
   try {
     await todoModel.deleteTodo(id);
     apiHandler.sendSuccess(id)
+
   } catch (error) {
     apiHandler.sendFailure(error.message)
   }
 }
-
