@@ -127,6 +127,13 @@ class TodoModel extends BaseModel {
       .aggregate(aggreator)
       .toArray()    
   }
+
+  async updateOne(data: Partial<ITodo> & {_id: string}){
+    const collection = await this.getCollection()
+    const { _id, ...todo } = data
+
+    return collection.updateOne({ _id: new ObjectId(_id) }, { $set: todo })
+  }
 }
 
 export default TodoModel

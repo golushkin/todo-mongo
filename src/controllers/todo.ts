@@ -69,3 +69,15 @@ export const getTodosWithCursor = async (req: Request, res: Response) => {
     apiHandler.sendFailure(error.message)
   }
 }
+
+export const updateTodo = async (req: Request, res: Response) => {
+  const apiHandler = new ApiHandler(req, res);
+  const { body } = req
+
+  try {
+    const updateResult = await todoModel.updateOne(body);
+    apiHandler.sendSuccess(updateResult)
+  } catch (error) {
+    apiHandler.sendFailure(error.message)
+  }
+}
