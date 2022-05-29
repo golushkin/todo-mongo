@@ -16,7 +16,7 @@ const todoModel = new TodoModel()
 
 jest.setTimeout(30_000);
 
-describe("Create todo", () => {
+describe("Delete todo", () => {
   let client: request.SuperTest<request.Test>
   let memoryServer: MongoMemoryServer
   
