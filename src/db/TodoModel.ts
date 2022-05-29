@@ -127,6 +127,12 @@ class TodoModel extends BaseModel {
       .aggregate(aggreator)
       .toArray()    
   }
+
+  async deleteTodo(id: string){
+    const collection = await this.getCollection()
+
+    return collection.deleteOne({ _id: new ObjectId(id) })
+  }
 }
 
 export default TodoModel
