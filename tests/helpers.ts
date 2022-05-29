@@ -75,5 +75,8 @@ export const createToDos = async (userId: string, numberOfTodo = 1) => {
     createTodoPromises.push(todoModel.create(todo))
   }
 
-  await Promise.all(createTodoPromises)
+  const ids = (await Promise.all(createTodoPromises))
+    .map(result => result.insertedId.toString())
+
+  return ids
 }
