@@ -134,6 +134,12 @@ class TodoModel extends BaseModel {
 
     return collection.updateOne({ _id: new ObjectId(_id) }, { $set: todo })
   }
+  
+  async deleteTodo(id: string){
+    const collection = await this.getCollection()
+
+    return collection.deleteOne({ _id: new ObjectId(id) })
+  }
 }
 
 export default TodoModel

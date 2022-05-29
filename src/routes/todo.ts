@@ -4,7 +4,8 @@ import {
   getTodos,
   getTodo,
   getTodosWithCursor,
-  updateTodo
+  updateTodo,
+  deleteTodo
 } from "../controllers/todo";
 
 const router = Router();
@@ -14,5 +15,6 @@ router.patch("/", updateTodo);
 router.get("/offset", getTodos);
 router.get("/cursor", getTodosWithCursor);
 router.get("/:id", getTodo);
+router.delete("/:id", deleteTodo);
 
 export default router;
